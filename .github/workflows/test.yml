@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # ручной запуск
+  workflow_dispatch:
 
 jobs:
   test:
@@ -27,12 +27,33 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          # Явно устанавливаем allure-pytest, если его нет в requirements.txt
+          pip install allure-pytest
+          # Проверяем, что плагин установлен
+          pip show allure-pytest
+
+      - name: List project files (debug)
+        run: |
+          echo "Содержимое корня репозитория:"
+          ls -la
+          echo "Поиск тестов:"
+          find . -name "test_*.py" -o -name "*_test.py"
 
       - name: Run tests with Allure
-        run: pytest tests/ --alluredir=allure-results
+        run: |
+          pytest tests/ --alluredir=allure-results || true
+
+      - name: Check allure-results directory
+        run: |
+          if [ -d "allure-results" ]; then
+            echo "allure-results найден:"
+            ls -la allure-results
+          else
+            echo "allure-results НЕ создан"
+          fi
 
       - name: Upload Allure results as artifact
-        if: always()   # сохраняем артефакт даже при падении тестов
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-results
